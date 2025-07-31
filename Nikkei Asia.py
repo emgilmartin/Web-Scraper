@@ -11,19 +11,24 @@ STAT_FEED = 'https://www.statnews.com/feed/'
 JPANDA_URL = 'https://fuzzypandaresearch.com'
 seen = set()
 
-def safe_get(url):
-    try:
-        resp = requests.get(url, headers=HEADERS, timeout=10)
-        resp.raise_for_status()
-        return resp
-    except requests.exceptions.HTTPError as e:
-        print(f"{time.strftime('%H:%M:%S')} | HTTPError for {url} | {e}")
-    except requests.exceptions.ConnectionError as e:
-        print(f"{time.strftime('%H:%M:%S')} | ConnectionError for {url} | {e}")
-    except requests.exceptions.Timeout as e:
-        print(f"{time.strftime('%H:%M:%S')} | Timeout for {url} | {e}")
-    except requests.exceptions.RequestException as e:
-        print(f"{time.strftime('%H:%M:%S')} | RequestException for {url} | {e}")
+def safe_get(url, retries=2):
+    for attempt in range(retries + 1):
+        try:
+            resp = requests.get(url, headers=HEADERS, timeout=(10, 20))
+            resp.raise_for_status()
+            return resp
+        except requests.exceptions.ConnectionError as e:
+            print(f"{time.strftime('%H:%M:%S')} | Timeout for {url} | {e}")
+            if attempt < retries:
+                time.sleep(5)
+            else:
+                return None
+        except requests.exceptions.Timeout as e:
+            print(f"{time.strftime('%H:%M:%S')} | Timeout for {url} | {e}")
+            break
+        except requests.exceptions.RequestException as e:
+            print(f"{time.strftime('%H:%M:%S')} | RequestException for {url} | {e}")
+            break
     return None
 
 def fetch_rss(feed_url, n=5):
